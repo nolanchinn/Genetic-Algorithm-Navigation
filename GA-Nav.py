@@ -7,7 +7,8 @@
 import random 
 import sys
 import copy
-import os #only necessary if the screen needs to be wiped
+import operator
+import os 
 
 #A map of fixed size 4x4 with a starting point, an ending point, and 2 obstacles
 class Map:
@@ -106,13 +107,98 @@ def drawPath(enviro, member):
 			sys.stdout.write(newGrid[x][y] + '|')
 		sys.stdout.write('\n+-+-+-+-+\n')
 
+#Create pairs ready for crossover
+def select(pop):
+	popCopy = copy.deepcopy(pop)
+	totalFit = 0
+	for x in range(0, len(popCopy)):
+		totalFit += popCopy[x][1]
+	if totalFit > 0:
+		popCopy = sorted(popCopy, key=operator.itemgetter(1), reverse=True)
+	pairs = []
+	for x in range(0, len(popCopy), 2):
+		pairs.append([popCopy[x], popCopy[x+1]])
+
+	return pairs
+
+#Change a random bit in a specific member
+def mutate(member):
+	moveSel = random.randrange(0,6) #select which "movement" to change
+	bitSel = random.randrange(0,2) #select which bit in the "movement" to change
+
+	#Logic for flipping bits (kinda hacky, probably a better way to do this)
+	if bitSel == 0:
+		if member[moveSel] == "00":
+			member[moveSel] = "10"
+		elif member[moveSel] == "01":
+			member[moveSel] = "11"
+		elif member[moveSel] == "10":
+			member[moveSel] = "00"
+		elif member[moveSel] == "11":
+			member[moveSel] = "01"
+	else:
+		if member[moveSel] == "00":
+			member[moveSel] = "01"
+		elif member[moveSel] == "01":
+			member[moveSel] = "00"
+		elif member[moveSel] == "10":
+			member[moveSel] = "11"
+		elif member[moveSel] == "11":
+			member[moveSel] = "10"
+	return member
+
+#Create a brand new population
+def crossover(pairs, enviro):
+	newPop = []
+	for x in range(0, len(pairs)):
+		a1 = [] #1st part of 1st in pair
+		a2 = [] #2nd part of 1st in pair
+		b1 = [] #1st part of 2nd in pair
+		b2 = [] #2nd part of 2nd in pair
+		new1 = []
+		new2 = []
+		crossPoint = random.randrange(0,6)
+		for y in range(0, 6):
+			if y < crossPoint:
+				a1.append(pairs[x][0][0][y]) #build the 1st part from the 1st list
+				b1.append(pairs[x][1][0][y]) #build the 1st part from the 2nd list
+			else:
+				a2.append(pairs[x][0][0][y]) #build the 2nd part from the 1st list
+				b2.append(pairs[x][1][0][y]) #build the 2nd part from the 2nd list
+		#form the new members of the population (perform the actual crossover)
+		new1 = a1 + b2
+		new2 = b1 + a2
+
+		#both "children" have a 1/1000 chance to mutate
+		if random.randrange(0, 1000) == 999:
+			new1 = mutate(new1)
+		if random.randrange(0, 1000) == 999:
+			new2 = mutate(new2)
+		#add the children to the newly created population
+		newPop.append([new1, fitCalc(new1, enviro)])
+		newPop.append([new2, fitCalc(new2, enviro)])
+	return newPop
+
+
+
+
 enviro = Map()
-print(enviro.start)
 enviro.draw()
+best = [[],1]
+population = []
+for x in range(0,6):
+	temp = generate(6)
+	tempFit = fitCalc(temp, enviro)
+	population.append([temp, tempFit]) #member and member's fitness paired together
 
-test = ["11","00","11","00", "11", "00"]
-
-printMem(test)
-sys.stdout.write('\nFitness: ')
-print(fitCalc(test, enviro))
-drawPath(enviro,test)
+#Start the iterative process
+for x in range(0,10000):
+	population = crossover(select(population), enviro)
+	if population[0][1] >= best[1]:
+		best = population[0]
+		os.system('cls')
+		drawPath(enviro, best[0])
+		sys.stdout.write("\nBest Path: ")
+		printMem(best[0])
+		sys.stdout.write("\nFitness: ")
+		print(best[1])

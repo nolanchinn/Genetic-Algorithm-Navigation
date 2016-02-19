@@ -99,7 +99,7 @@ def drawPath(enviro, member):
 			position[0] += 1 #move right
 
 		newGrid[position[0]][position[1]] = 'o'
-
+	newGrid[enviro.goal[0]][enviro.goal[1]] = 'G'
 	sys.stdout.write('+-+-+-+-+\n')
 	for y in range(3,-1,-1):
 		sys.stdout.write('|')
@@ -181,11 +181,24 @@ def crossover(pairs, enviro):
 
 
 
+#Draw out the map
+#+-+-+-+-+
+#| |%| |G|	This is what the map looks like
+#+-+-+-+-+  S represents the starting position
+#| | | | |  G represents the goal position
+#+-+-+-+-+  % represents an obstacle
+#| | | | |  o represents a square visited by the path (none are visited at first)
+#+-+-+-+-+
+#|S| |%| |
+#+-+-+-+-+
 
 enviro = Map()
 enviro.draw()
-best = [[],1]
-population = []
+
+best = [[],1] #an empty best attempt, with 1 as the fitness since we don't want to display invalid solutions
+population = [] 
+
+#Generate the initial population
 for x in range(0,6):
 	temp = generate(6)
 	tempFit = fitCalc(temp, enviro)
@@ -194,8 +207,10 @@ for x in range(0,6):
 #Start the iterative process
 for x in range(0,10000):
 	population = crossover(select(population), enviro)
-	if population[0][1] >= best[1]:
-		best = population[0]
+	if population[0][1] >= best[1]: #if a member of the new population is better than the previous best
+		best = population[0] 		#make it then new best solution
+
+		#Update the display with the new information
 		os.system('cls')
 		drawPath(enviro, best[0])
 		sys.stdout.write("\nBest Path: ")
